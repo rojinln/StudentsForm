@@ -2,11 +2,20 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
+const bodyParser = require('body-parser')
 
 const app = express();
 const port = 8080;
 
+app.set('view engine' , 'ejs');
+
 app.use(express.static(path.resolve(__dirname, 'public')));
+
+app.use( bodyParser.json() );      
+    app.use(bodyParser.urlencoded({    
+        extended: true
+    })
+)
 
 class studentInfo {
     constructor() {
