@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>        
+    <title>Student Form</title>
+    <style>
+        table,
+        th,
+        td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        tr:hover {
+            background-color: rgb(120, 161, 171);
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #929292;
+        }
+        tr:hover:nth-child(even) {
+            background-color:  rgb(120, 161, 171);
+        }
+
+        table {
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <table id="tableID">
+        <thead>
+            <th>StudentID</th>
+            <th>Name</th>
+            <th>Last Name</th>
+            <th>Birthday</th>
+            <th>Major</th>
+            <th>University</th>
+            <th>Actions</th>
+        </thead>
+        <tbody id="tablebody"><!-- table rows --></tbody>
+    </table>
+
+    <form id="studentForm">
+        <input type="number" placeholder="Enter ID" id="idInput"  min="0" max="99999999" required>
+        <input type="text" placeholder="Enter name" id="nameInput" required>
+        <input type="text" placeholder="Enter last name" id="lastNameInput" required>
+        <input type="date" id="bdayInput" min="1940-12-29" max="2008-12-29" required>
+        <input type="text" placeholder="Enter Major" id="majorInput" required>
+        <input type="text" placeholder="Enter University" id="uniInput" required>
+        <input type="submit" value="Add Student" id="submitButton">
+    </form>
+
+    <script src="server.js">
+        function getData() {
+        var xhttp = new XMLHttpRequest();
+        var targetUrl = "http://localhost:8080";
+        
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+            document.getElementById("demo").innerHTML =
+            this.responseText;
+            }else if (this.status){
+                document.getElementById("demo").innerHTML = "Can not access: " + targetUrl 
+                    + " <br /> Response: " + this.status + " " + this.responseText;
+            }else{
+                document.getElementById("demo").innerHTML = "Loading... ";
+            }
+        };
+        
+        xhttp.open("GET", targetUrl, true);
+        xhttp.send();
+        }
+    </script>
+</body>
+</html>
