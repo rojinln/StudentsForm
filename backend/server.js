@@ -32,7 +32,7 @@ let students = [
 
 function renderTable(req, res) {
     let tableRows = '';
-    students.forEach(student => {
+    students.forEach((student, index) => {
         tableRows += `
             <tr>
                 <td>${student.ID}</td>
@@ -41,7 +41,15 @@ function renderTable(req, res) {
                 <td>${student.birthday}</td>
                 <td>${student.major}</td>
                 <td>${student.uni}</td>
-                <td><button>Edit</button><button>Delete</button></td>
+                <td>
+                    <form action="/edit" method="post">
+                        <button type="submit">Edit</button>
+                    </form>
+                    <form action="/delete" method="post">
+                        <input type="hidden" name="index" value="${index}">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
             </tr>
         `;
     });
@@ -53,6 +61,11 @@ function renderTable(req, res) {
 
 app.get("/", renderTable);
 
+app.post("/delete", (req, res) => {
+    const index = parseInt(req.body.index);
+    students.splice(index, 1);
+    renderTable(req, res);
+});
 
 app.post("/", (req, res) => {
     let input = req.body;
@@ -62,7 +75,7 @@ app.post("/", (req, res) => {
     newStudent.lastName = input.lastName;
     newStudent.birthday = input.bdayInput;
     newStudent.major = input.majorInput;
-    newStudent.uni = input.uniInput; 
+    newStudent.uni = input.uniInput;
     students.push(newStudent);
     renderTable(req, res);
 });
