@@ -2,17 +2,17 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
 
 const app = express();
 const port = 8080;
 
 app.set('view engine', 'ejs');
-
-app.use(express.static(path.resolve(__dirname, 'frontend')));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'frontend')));
 console.log(__dirname);
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: false }));
 
 class studentInfo {
     constructor() {
@@ -30,42 +30,35 @@ let students = [
     { name: "Rojin", lastName: "LN", ID: 2931, birthday: "1380-08-13", major: "CS", uni: "Behesthi" }
 ];
 
-function renderTable(req, res) {
-    let tableRows = '';
-    students.forEach((student, index) => {
-        tableRows += `
-            <tr>
-                <td>${student.ID}</td>
-                <td>${student.name}</td>
-                <td>${student.lastName}</td>
-                <td>${student.birthday}</td>
-                <td>${student.major}</td>
-                <td>${student.uni}</td>
-                <td>
-                    <form action="/edit" method="post">
-                        <button type="submit">Edit</button>
-                    </form>
-                    <form action="/delete" method="post">
-                        <input type="hidden" name="index" value="${index}">
-                        <button type="submit">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        `;
-    });
-
-    const htmlContent = fs.readFileSync(path.resolve(__dirname, '../frontend', 'index.html'), 'utf8');
-    const modifiedHtml = htmlContent.replace('<!-- table rows -->', tableRows);
-    res.send(modifiedHtml);
+function sendStudents(res) {
+    res.render('index.html', { students: students });
 }
 
-app.get("/", renderTable);
+app.get("/", (req, res) => {
+    const html = fs.readFileSync(path.join(__dirname, 'frontend', 'index.html'), 'utf8');
+    res.send(html);
+});
 
 app.post("/delete", (req, res) => {
     const index = parseInt(req.body.index);
     students.splice(index, 1);
-    renderTable(req, res);
+    sendStudents(res);
 });
+
+/* error : cannot POST /edit 
+app.post("/edit", (req, res) => {
+    const index = parseInt(req.body.index);
+
+    if (index >= 0 && index < students.length) {
+        const student = students[index];
+        res.json(student); 
+        res.send(student , index)
+    } else {
+        // no console.
+        console.error("Invalid student index received in edit request");
+    }
+  });
+  */
 
 app.post("/", (req, res) => {
     let input = req.body;
@@ -77,7 +70,7 @@ app.post("/", (req, res) => {
     newStudent.major = input.majorInput;
     newStudent.uni = input.uniInput;
     students.push(newStudent);
-    renderTable(req, res);
+    sendStudents(res);
 });
 
 app.listen(port, () => {
