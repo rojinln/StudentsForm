@@ -44,36 +44,106 @@
         <tbody id="tablebody"><!-- table rows --></tbody>
     </table>
 
-    <form id="studentForm" method="post" action="/">
-        <input type="number" placeholder="Enter ID" name="ID" min="0" max="99999999" required>
-        <input type="text" placeholder="Enter name" name="name" required>
-        <input type="text" placeholder="Enter last name" name="lastName" required>
-        <input type="date" name="bdayInput" min="1940-12-29" max="2008-12-29" required>
-        <input type="text" placeholder="Enter Major" name="majorInput" required>
-        <input type="text" placeholder="Enter University" name="uniInput" required>
-        <input type="submit" value="Add Student" id="submitButton" >
+    <form id="studentForm">
+        <input type="number" placeholder="Enter ID" id="idInput"  min="0" max="99999999" required>
+        <input type="text" placeholder="Enter name" id="nameInput" required>
+        <input type="text" placeholder="Enter last name" id="lastNameInput" required>
+        <input type="date" id="bdayInput" min="1940-12-29" max="2008-12-29" required>
+        <input type="text" placeholder="Enter Major" id="majorInput" required>
+        <input type="text" placeholder="Enter University" id="uniInput" required>
+        <input type="submit" value="Add Student" id="submitButton">
     </form>
-    
+
     <script>
         function getData() {
-        var xhttp = new XMLHttpRequest();
-        var targetUrl = "http://localhost:8080";
-        
-        xhttp.onreadystatechange = function() {
-            if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("demo").innerHTML =
-            this.responseText;
-            }else if (this.status){
-                document.getElementById("demo").innerHTML = "Can not access: " + targetUrl 
-                    + " <br /> Response: " + this.status + " " + this.responseText;
-            }else{
-                document.getElementById("demo").innerHTML = "Loading... ";
-            }
-        };
-        
-        xhttp.open("GET", targetUrl, true);
-        xhttp.send();
+            var xhttp = new XMLHttpRequest();
+            var targetUrl = "http://localhost:8080";
+
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    renderTable(JSON.parse(this.responseText));
+                } else if (this.status) {
+                    console.error("Error fetching data: " + this.status + " " + this.responseText);
+                }
+            };
+
+            xhttp.open("GET", targetUrl, true);
+            xhttp.send();
         }
+
+        function renderTable(students) {
+            var tablebody = document.getElementById("tablebody");
+            tablebody.innerHTML = "";
+
+            students.forEach(function(student, index) {
+                var row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${student.ID}</td>
+                    <td>${student.name}</td>
+                    <td>${student.lastName}</td>
+                    <td>${student.birthday}</td>
+                    <td>${student.major}</td>
+                    <td>${student.uni}</td>
+                    <td>
+                        <form action="/edit" method="post">
+                            <button type="button" onclick="alert("clicked") //handleEdit(${index})">Edit</button>
+                        </form>
+                        <form action="/delete" method="post">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </td>
+                `;
+                tablebody.appendChild(row);
+            });
+        }
+
+
+        window.onload = getData;
+
+        document.getElementById("studentForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            var formData = new FormData(this);
+
+            var xhttp = new XMLHttpRequest();
+            var targetUrl = "http://localhost:8080";
+
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    getData(); 
+                } else if (this.status) {
+                    console.error("Error adding student: " + this.status + " " + this.responseText);
+                }
+            };
+
+            xhttp.open("POST", targetUrl + "/edit", true);
+            xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhttp.send(new URLSearchParams(formData).toString());
+        });
+
+        /* error : cannot POST /edit 
+        function handleEdit(index) {
+            fetch("http://localhost:8080/edit", {
+                method: "post",
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ index: index })
+            })
+            .then(res => res.json())
+            .then(data => {
+                        document.getElementById("idInput").value = data.ID;
+                        document.getElementById("nameInput").value = data.name;
+                        document.getElementById("lastNameInput").value = data.lastName;
+                        document.getElementById("bdayInput").value = data.birthday;
+                        document.getElementById("majorInput").value = data.major;
+                        document.getElementById("uniInput").value = data.uni;
+                    })
+            .catch(error => console.error("Error fetching student data for edit:", error));
+        }
+        */
+
+
     </script>
 </body>
 </html>
