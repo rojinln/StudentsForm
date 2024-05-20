@@ -2,12 +2,23 @@ const http = require('http');
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
+const {Client} = require('pg');
 
 const app = express();
 const port = 8080;
 
+const client = new Client({
+    host: 'localhost',    
+    user: "postgres",
+    port: 5432,
+    password:`12345678`,
+    database:'postgres'
+  });
+
+client.connect();
+
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '../frontend')); 
+app.set('views', path.join(__dirname, '../frontend'));
 
 app.use(express.json());
 app.use(express.static(path.resolve(__dirname, '../frontend')));
@@ -15,59 +26,98 @@ app.use(express.static(path.resolve(__dirname, '../frontend')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-class studentInfo {
-    constructor() {
-        this.ID = 0;
-        this.name = '';
-        this.lastName = '';
-        this.birthday = '';
-        this.major = '';
-        this.uni = '';
+async function insertStudent({ name, lastname, id, birthday, major, uni }) {
+    try {
+        const result = await client.query(`
+            insert into students
+            (name, lastname, id, birthday, major, uni)
+            values
+            ($1, $2, $3, $4, $5, $6)
+            returning name, lastname, id, birthday, major, uni
+        `, [name, lastname, id, birthday, major, uni]);
+       return result.rows[0];
+    } catch (error) {
+        console.error('Error inserting student:', error);
+        throw error;
     }
 }
 
-let students = [
-    { name: "Bahar", lastName: "Khouban", ID: 32912023, birthday: "2000-08-19", major: "CS", uni: "Behesthi" },
-    { name: "Rojin", lastName: "LN", ID: 2931, birthday: "1380-08-13", major: "CS", uni: "Behesthi" }
-];
-
+async function getStudents() {
+    try {
+        const result = await client.query('select * from students');
+        return result.rows;
+    } catch (error) {
+        console.error('Error fetching students:', error);
+        throw error;
+    }
+}
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
 });
 
-app.get("/students", (req, res) => {
+app.get("/students", async (req, res) => {
+    const students = await getStudents();
     res.json(students);
 });
 
-app.post("/delete", (req, res) => {
-    const index = parseInt(req.body.index);
-    students.splice(index, 1);
-    res.json({ status: "success" });
+
+async function deleteStudent({ name }) {
+    try {
+        const result = await client.query(`
+            DELETE FROM students WHERE name = $1`, [name]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error deleting student:', error);
+        throw error;
+    }
+}
+
+app.post("/delete", async (req, res) => {
+    try {
+        await deleteStudent(req.body);
+        res.json({ status: "success" });
+    } catch (error) {
+        console.error('Error deleting student:', error);
+        res.status(500).json({ status: "error", message: "Failed to delete student" });
+    }
 });
 
-app.post("/edit", (req, res) => {
-    const index = parseInt(req.body.index);
-    const student = students[index];
-    student.ID = parseInt(req.body.ID);
-    student.name = req.body.name;
-    student.lastName = req.body.lastName;
-    student.birthday = req.body.bdayInput;
-    student.major = req.body.majorInput;
-    student.uni = req.body.uniInput;
+async function updateStudent({ id, name, lastname, birthday, major, uni }) {
+    try {
+        const result = await client.query(`
+            UPDATE students 
+            SET name = $1, lastname = $2, birthday = $3, major = $4, uni = $5 
+            WHERE id = $6
+            RETURNING name, lastname, id, birthday, major, uni
+        `, [name, lastname, birthday, major, uni, id]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error updating student:', error);
+        throw error;
+    }
+}
 
-    res.status(200).json({ status: "success", student }); 
+app.post("/edit", async (req, res) => {
+    try {
+        const { id, name, lastname, birthday, major, uni } = req.body;
+        await updateStudent({ id, name, lastname, birthday, major, uni });
+        res.json({ status: "success" });
+    } catch (error) {
+        console.error('Error updating student:', error);
+        res.status(500).json({ status: "error", message: "Failed to update student" });
+    }
 });
 
-app.post("/", (req, res) => {
+app.post("/", async (req, res) => {
     let input = req.body;
-    let newStudent = new studentInfo();
-    newStudent.ID = parseInt(input.ID);
-    newStudent.name = input.name;
-    newStudent.lastName = input.lastName;
-    newStudent.birthday = input.bdayInput;
-    newStudent.major = input.majorInput;
-    newStudent.uni = input.uniInput;
-    students.push(newStudent);
+    await insertStudent({
+        name: input.name,
+        lastname: input.lastname,
+        id: parseInt(input.id),
+        birthday: input.birthday,
+        major: input.major,
+        uni: input.uni
+    });
     res.json({ status: "success" });
 });
 
