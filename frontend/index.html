@@ -72,9 +72,9 @@
   <table id="tableID">
     <thead>
       <tr>
-        <th>StudentID</th>
         <th>Name</th>
         <th>Last Name</th>
+        <th>StudentID</th>
         <th>Birthday</th>
         <th>Major</th>
         <th>University</th>
@@ -86,12 +86,12 @@
 
   <form id="studentForm">
     <input type="hidden" name="index" id="index">
-    <input type="number" placeholder="Enter ID" name="ID" min="0" max="99999999" required>
     <input type="text" placeholder="Enter name" name="name" required>
-    <input type="text" placeholder="Enter last name" name="lastName" required>
-    <input type="date" name="bdayInput" required>
-    <input type="text" placeholder="Enter Major" name="majorInput" required>
-    <input type="text" placeholder="Enter University" name="uniInput" required>
+    <input type="text" placeholder="Enter last name" name="lastname" required>
+    <input type="number" placeholder="Enter ID" name="id" min="0" max="99999999" required>
+    <input type="date" name="birthday" required>
+    <input type="text" placeholder="Enter Major" name="major" required>
+    <input type="text" placeholder="Enter University" name="uni" required>
     <input type="submit" value="Add Student" id="submitButton">
   </form>
 
@@ -99,7 +99,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       fetchStudents();
 
-      document.getElementById('studentForm').addEventListener('submit', function(event) {
+      document.getElementById('studentForm').addEventListener('submit', async(event) => {
         event.preventDefault();
         const form = event.target;
         const index = form.index.value;
@@ -144,23 +144,25 @@
           tableBody.innerHTML = '';
           students.forEach((student, index) => {
             const row = document.createElement('tr');
+            // -> yyyy-mm-dd
+            const date = new Date(student.birthday);
+            const formattedDate = date.toISOString().split('T')[0];
             row.innerHTML = `
-              <td>${student.ID}</td>
               <td>${student.name}</td>
-              <td>${student.lastName}</td>
-              <td>${student.birthday}</td>
+              <td>${student.lastname}</td>
+              <td>${student.id}</td>
+              <td>${formattedDate}</td>
               <td>${student.major}</td>
               <td>${student.uni}</td>
               <td>
                 <button type="button" onclick="editStudent(${index})">Edit</button>
-                <button type="button" onclick="deleteStudent(${index})">Delete</button>
+                <button type="button" onclick="deleteStudent('${student.name}')">Delete</button>
               </td>
             `;
             tableBody.appendChild(row);
           });
         });
     }
-    
 
     function editStudent(index) {
       fetch('/students')
@@ -168,26 +170,30 @@
         .then(students => {
           const student = students[index];
           document.querySelector('input[name="index"]').value = index;
-          document.querySelector('input[name="ID"]').value = student.ID;
           document.querySelector('input[name="name"]').value = student.name;
-          document.querySelector('input[name="lastName"]').value = student.lastName;
-          document.querySelector('input[name="bdayInput"]').value = student.birthday;
-          document.querySelector('input[name="majorInput"]').value = student.major;
-          document.querySelector('input[name="uniInput"]').value = student.uni;
+          document.querySelector('input[name="lastname"]').value = student.lastname;
+          document.querySelector('input[name="id"]').value = student.id;
+          
+          // date bug fix -> yyyy-mm-dd
+          const date = new Date(student.birthday);
+          const formattedDate = date.toISOString().split('T')[0];
+          
+          document.querySelector('input[name="birthday"]').value = formattedDate;
+          document.querySelector('input[name="major"]').value = student.major;
+          document.querySelector('input[name="uni"]').value = student.uni;
           document.getElementById('submitButton').value = 'Update Student';
         });
     }
 
-    function deleteStudent(index) {
-      fetch('/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `index=${index}`
-      }).then(() => {
-        fetchStudents();
-      });
-    }
-
+  function deleteStudent(name) {
+    fetch('/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `name=${name}`
+    }).then(() => {
+      fetchStudents();
+    });
+  }
   </script>
 </body>
 </html>
