@@ -1,8 +1,10 @@
 const http = require('http');
+
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const {Client} = require('pg');
+const objectMapper = require('object-mapper');
 
 const app = express();
 const port = 8080;
@@ -14,6 +16,15 @@ const client = new Client({
     password:`12345678`,
     database:'postgres'
   });
+
+const studentResult = {
+    'name': 'studentName',
+    'lastname': 'studentLastname',
+    'id': 'studentID',
+    'birthday': 'studentBirthday',
+    'major': 'studentMajor',
+    'uni': 'studentUni'
+};
 
 client.connect();
 
@@ -35,6 +46,7 @@ async function insertStudent({ name, lastname, id, birthday, major, uni }) {
             ($1, $2, $3, $4, $5, $6)
             returning name, lastname, id, birthday, major, uni
         `, [name, lastname, id, birthday, major, uni]);
+        console.log('Insert result:', result.rows[0]); 
        return result.rows[0];
     } catch (error) {
         console.error('Error inserting student:', error);
@@ -45,7 +57,16 @@ async function insertStudent({ name, lastname, id, birthday, major, uni }) {
 async function getStudents() {
     try {
         const result = await client.query('select * from students');
-        return result.rows;
+        const mappedStudents = result.rows.map(row => {
+            studentResult.id = row.id;
+            studentResult.birthday = row.birthday;
+            studentResult.name = row.name;
+            studentResult.lastname = row.lastname;
+            studentResult.major = row.major;
+            studentResult.uni = row.uni;
+            return studentResult;
+        });        
+        return result.rows
     } catch (error) {
         console.error('Error fetching students:', error);
         throw error;
@@ -59,7 +80,6 @@ app.get("/students", async (req, res) => {
     const students = await getStudents();
     res.json(students);
 });
-
 
 async function deleteStudent({ name }) {
     try {
